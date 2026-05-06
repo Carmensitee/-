@@ -356,7 +356,15 @@ class Enemy extends Tank {
       this.dir = Math.floor(Math.random() * 4);
     }
     if (!this.move(this.dir)) {
-      this.dir = Math.floor(Math.random() * 4);
+      // 当前方向走不通，尝试其他方向
+      const dirs = [0, 1, 2, 3].filter(d => d !== this.dir);
+      for (let i = dirs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+      }
+      for (const d of dirs) {
+        if (this.move(d)) break;
+      }
     }
     if (this.shootTimer <= 0) {
       this.shootTimer = 80 + Math.random() * 80;
@@ -433,6 +441,7 @@ function restartGame() {
   restartBtn.classList.remove('show');
   statusText.textContent = '游戏进行中...';
   statusText.style.color = '#888';
+  gameLoop();
 }
 
 function checkWin() {
@@ -533,11 +542,10 @@ function update() {
   if (!game || !game.player) return;
   // 玩家移动
   if (game.player.alive) {
-    let moved = false;
-    if (keys['ArrowUp'] || keys['KeyW']) { game.player.move(DIR.UP); moved = true; }
-    else if (keys['ArrowDown'] || keys['KeyS']) { game.player.move(DIR.DOWN); moved = true; }
-    else if (keys['ArrowLeft'] || keys['KeyA']) { game.player.move(DIR.LEFT); moved = true; }
-    else if (keys['ArrowRight'] || keys['KeyD']) { game.player.move(DIR.RIGHT); moved = true; }
+    if (keys['ArrowUp'] || keys['KeyW']) game.player.move(DIR.UP);
+    else if (keys['ArrowDown'] || keys['KeyS']) game.player.move(DIR.DOWN);
+    else if (keys['ArrowLeft'] || keys['KeyA']) game.player.move(DIR.LEFT);
+    else if (keys['ArrowRight'] || keys['KeyD']) game.player.move(DIR.RIGHT);
     game.player.update();
     if (keys['Space']) {
       const b = game.player.shoot();
@@ -577,7 +585,10 @@ function render() {
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#fff';
     ctx.font = '20px Arial';
-    ctx.fillText(`最终得分: ${game.score}`, W / 2, H / 2 + 50);
+    ctx.fillText(`最终得分: ${game.score}`, W / 2, H / 2 + 40);
+    ctx.fillStyle = '#aaa';
+    ctx.font = '16px Arial';
+    ctx.fillText('按 Enter 或点击画面重新开始', W / 2, H / 2 + 75);
   }
 }
 
@@ -611,9 +622,17 @@ function initGame() {
 document.addEventListener('keydown', (e) => {
   keys[e.code] = true;
   if (e.code === 'Space') e.preventDefault();
+  // 游戏结束时按 Enter 重新开始
+  if (e.code === 'Enter' && game && game.gameOver) {
+    restartGame();
+  }
 });
 document.addEventListener('keyup', (e) => {
   keys[e.code] = false;
+});
+// 点击画面重新开始
+canvas.addEventListener('click', () => {
+  if (game && game.gameOver) restartGame();
 });
 
 // ============================ 启动 ============================
