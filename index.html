@@ -101,6 +101,7 @@ const enemiesDisplay = document.getElementById('enemiesDisplay');
 const levelDisplay = document.getElementById('levelDisplay');
 const statusText = document.getElementById('statusText');
 const restartBtn = document.getElementById('restart-btn');
+const keys = {};
 
 // ============================ 地图库 ============================
 // 0=空地 1=砖墙 2=钢墙 3=基地(鹰旗)
@@ -602,16 +603,17 @@ function advanceLevel() {
   game.explosions = [];
   game.player = new Player();
   game.baseDestroyed = false;
+  game.gameOver = false;
+  game.win = false;
+  fireworks = [];
   updateHUD();
   statusText.textContent = `第 ${game.level} 关 - ${cfg.name}`;
   statusText.style.color = '#4caf50';
   restartBtn.classList.remove('show');
   for (let i = 0; i < 2; i++) {
-    setTimeout(() => spawnEnemy(), i * 800);
+    setTimeout(() => spawnEnemy(), i * 200);
   }
-  // 显示关卡过渡文字
-  game.levelTransition = 60;
-}
+  }
 
 function checkWin() {
   if (!game || game.gameOver) return;
@@ -709,13 +711,13 @@ function gameLoop() {
   if (!game.gameOver) {
     update();
   }
+  updateFireworks();
   render();
   animId = requestAnimationFrame(gameLoop);
 }
 
 function update() {
   if (!game || !game.player) return;
-  if (game.levelTransition > 0) { game.levelTransition--; return; }
   if (game.player.alive) {
     if (keys['ArrowUp'] || keys['KeyW']) game.player.move(DIR.UP);
     else if (keys['ArrowDown'] || keys['KeyS']) game.player.move(DIR.DOWN);
@@ -742,24 +744,6 @@ function render() {
   for (const b of game.bullets) b.draw();
   drawExplosions();
   drawFireworks();
-
-  // 关卡过渡效果
-  if (game.levelTransition > 0) {
-    const alpha = Math.min(1, game.levelTransition / 30);
-    ctx.fillStyle = `rgba(0,0,0,${alpha * 0.6})`;
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 36px Arial';
-    ctx.textAlign = 'center';
-    const cfg = LEVELS[game.level - 1];
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = '#ffd700';
-    ctx.fillText(`第 ${game.level} 关`, W / 2, H / 2 - 15);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff';
-    ctx.font = '18px Arial';
-    ctx.fillText(cfg.name, W / 2, H / 2 + 30);
-  }
 
   if (game.gameOver) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -821,8 +805,7 @@ function initGame() {
     gameOver: false,
     win: false,
     baseDestroyed: false,
-    levelTransition: 40,
-  };
+      };
   updateHUD();
   statusText.textContent = `第 1 关 - ${cfg.name}`;
   statusText.style.color = '#4caf50';
